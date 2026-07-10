@@ -9,10 +9,6 @@ import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.exifinterface.media.ExifInterface
-import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
 import com.google.gson.Gson
 import com.google.mlkit.codelab.objectdetection.databinding.ActivityLabelBinding
 import com.google.mlkit.vision.common.InputImage
@@ -23,7 +19,6 @@ import java.io.File
 import java.io.FileWriter
 import java.io.IOException
 import com.google.gson.GsonBuilder
-import models.PostFeature
 import java.util.HashMap
 
 
@@ -34,7 +29,7 @@ class LabelActivity : AppCompatActivity() {
     lateinit var listDataArray: Array<String>
     private lateinit var dataBoxArray: Array<String>
     private lateinit var imageName: String
-    private lateinit var database: DatabaseReference
+    private lateinit var postRepository: PostRepository
     val boxMap = mutableMapOf<String, Int>()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,7 +37,7 @@ class LabelActivity : AppCompatActivity() {
         val view = binding.root
         setContentView(view)
         binding.checkButton.show()
-        database = Firebase.database.reference
+        postRepository = PostRepository()
         binding.checkButton.setOnClickListener {
             binding.checkButton.hide()
             Log.e("finish", "finish")
@@ -259,43 +254,29 @@ class LabelActivity : AppCompatActivity() {
             val top = boxMap["top"+i.toString()].toString()
             val right = boxMap["right"+i.toString()].toString()
             val bottom = boxMap["bottom"+i.toString()].toString()
-            writeNewPost(imageName+".jpg",left,top,right,bottom,listDataArray[i * 3],listDataArray[i * 3+1],listDataArray[i * 3+2])
-        }
 
-
-    }
-
-    private fun writeNewPost(uid: String, left: String, top: String, right: String, bottom: String, label1: String, label2: String, label3: String) {
-        // Create new post at /user-posts/$userid/$postid and at
-        // /posts/$postid simultaneously
-        val key = database.child("posts").push().key
-        if (key == null) {
-            Log.w(MainActivity.TAG, "Couldn't get push key for posts")
-            return
-        }
-        val post = PostFeature(uid,left, top, right, bottom, label1, label2, label3)
-        val postValues = post.toMap()
-
-        val childUpdates = hashMapOf<String, Any>(
-            "/posts/$key" to postValues
-        )
-
-        database.updateChildren(childUpdates)
-            .addOnSuccessListener {
-                // Write was successful!
-                // ...
-                Toast.makeText(this, "Upload successful!", Toast.LENGTH_LONG).show()
-
-                val intent = Intent(this, MainActivity::class.java).apply {
+            postRepository.writeNewPost(
+                uid = imageName + ".jpg",
+                left = left,
+                top = top,
+                right = right,
+                bottom = bottom,
+                label1 = listDataArray[i * 3],
+                label2 = listDataArray[i * 3 + 1],
+                label3 = listDataArray[i * 3 + 2],
+                onSuccess = {
+                    Toast.makeText(this, "Upload successful!", Toast.LENGTH_LONG).show()
+                    val intent = Intent(this, MainActivity::class.java).apply {
+                    }
+                    startActivity(intent)
+                },
+                onFailure = {
+                    Toast.makeText(this, "Upload failed", Toast.LENGTH_LONG).show()
                 }
-                startActivity(intent)
-            }
-            .addOnFailureListener {
-                // Write failed
-                Toast.makeText(this, "Upload failed", Toast.LENGTH_LONG).show()
+            )
+        }
 
-                // ...
-            }
+
     }
 
 
