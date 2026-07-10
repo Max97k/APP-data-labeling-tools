@@ -236,8 +236,8 @@ class LabelActivity : AppCompatActivity() {
 //        gson.toJson(data, FileWriter(createCsvFile()))
 
         FileWriter(createCsvFile()).use { writer ->
-            val gson = GsonBuilder().create()
-            gson.toJson(data, writer)
+            val exporter = CsvExporter()
+            exporter.export(data, writer)
         }
 
     }
