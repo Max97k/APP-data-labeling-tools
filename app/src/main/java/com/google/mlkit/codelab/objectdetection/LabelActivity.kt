@@ -51,9 +51,9 @@ class LabelActivity : AppCompatActivity() {
             Log.e("finish", "finish")
         }
 
-        currentPhotoPath = intent.getStringExtra("image")!!
-        imageName = intent.getStringExtra("imageName")!!
-        val ot = intent.getIntExtra("ot", 0)
+        currentPhotoPath = intent.getStringExtra(Constants.EXTRA_IMAGE_PATH)!!
+        imageName = intent.getStringExtra(Constants.EXTRA_IMAGE_NAME)!!
+        val ot = intent.getIntExtra(Constants.EXTRA_ORIENTATION, 0)
 
         var bitmap = BitmapFactory.decodeFile(currentPhotoPath)
 
@@ -94,12 +94,12 @@ class LabelActivity : AppCompatActivity() {
 
             // Parse ML Kit's DetectedObject and create corresponding visualization data
             val detectedObjects = results.map {
-                var text = "Unknown"
+                var text = getString(R.string.unknown_object)
 
                 // We will show the top confident detection result if it exist
                 if (it.labels.isNotEmpty()) {
                     val firstLabel = it.labels.first()
-                    text = "${firstLabel.text}, ${firstLabel.confidence.times(100).toInt()}%"
+                    text = getString(R.string.label_confidence, firstLabel.text, firstLabel.confidence.times(100).toInt())
                 }
                 BoxWithText(it.boundingBox, text)
             }
@@ -110,7 +110,7 @@ class LabelActivity : AppCompatActivity() {
             // Show the detection result on the app screen
 //            imageRun.setImageBitmap(visualizedResult)
         }.addOnFailureListener {
-            Log.e(MainActivity.TAG, it.message.toString())
+            Log.e(Constants.TAG, it.message.toString())
         }
     }
 
@@ -142,7 +142,7 @@ class LabelActivity : AppCompatActivity() {
         detectionResults.forEach {
             // draw bounding box
             pen.color = Color.RED
-            pen.strokeWidth = 8F
+            pen.strokeWidth = Constants.BOX_STROKE_WIDTH
             pen.style = Paint.Style.STROKE
             val box = it.box
             canvas.drawRect(box, pen)
@@ -152,9 +152,9 @@ class LabelActivity : AppCompatActivity() {
             // calculate the right font size
             pen.style = Paint.Style.FILL_AND_STROKE
             pen.color = Color.YELLOW
-            pen.strokeWidth = 2F
+            pen.strokeWidth = Constants.TEXT_STROKE_WIDTH
 
-            pen.textSize = 96F
+            pen.textSize = Constants.MAX_FONT_SIZE
             pen.getTextBounds(it.text, 0, it.text.length, tagSize)
             val fontSize: Float = pen.textSize * box.width() / tagSize.width()
 
@@ -268,23 +268,23 @@ class LabelActivity : AppCompatActivity() {
     private fun writeNewPost(uid: String, left: String, top: String, right: String, bottom: String, label1: String, label2: String, label3: String) {
         // Create new post at /user-posts/$userid/$postid and at
         // /posts/$postid simultaneously
-        val key = database.child("posts").push().key
+        val key = database.child(Constants.DB_POSTS_PATH).push().key
         if (key == null) {
-            Log.w(MainActivity.TAG, "Couldn't get push key for posts")
+            Log.w(Constants.TAG, "Couldn't get push key for posts")
             return
         }
         val post = PostFeature(uid,left, top, right, bottom, label1, label2, label3)
         val postValues = post.toMap()
 
         val childUpdates = hashMapOf<String, Any>(
-            "/posts/$key" to postValues
+            "/${Constants.DB_POSTS_PATH}/$key" to postValues
         )
 
         database.updateChildren(childUpdates)
             .addOnSuccessListener {
                 // Write was successful!
                 // ...
-                Toast.makeText(this, "Upload successful!", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.upload_successful), Toast.LENGTH_LONG).show()
 
                 val intent = Intent(this, MainActivity::class.java).apply {
                 }
@@ -292,7 +292,7 @@ class LabelActivity : AppCompatActivity() {
             }
             .addOnFailureListener {
                 // Write failed
-                Toast.makeText(this, "Upload failed", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.upload_failed), Toast.LENGTH_LONG).show()
 
                 // ...
             }
@@ -308,7 +308,7 @@ class LabelActivity : AppCompatActivity() {
         val storageDir: File? = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
         return File.createTempFile(
             imageName, /* prefix */
-            ".csv", /* suffix */
+            Constants.FILE_SUFFIX_CSV, /* suffix */
             storageDir /* directory */
         ).apply {
             // Save a file: path for use with ACTION_VIEW intents

@@ -46,9 +46,7 @@ import java.util.*
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
     companion object {
-        const val TAG = "MLKit-ODT"
         const val REQUEST_IMAGE_CAPTURE: Int = 1
-        private const val MAX_FONT_SIZE = 96F
     }
 
     private lateinit var captureImageFab: Button
@@ -88,7 +86,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 try {
                     dispatchTakePictureIntent()
                 } catch (e: ActivityNotFoundException) {
-                    Log.e(TAG, e.message.toString())
+                    Log.e(Constants.TAG, e.message.toString())
                 }
             }
             R.id.toLabelFab -> {
@@ -196,12 +194,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     @Throws(IOException::class)
     private fun createImageFile(): File {
         // Create an image file name
-        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
+        val timeStamp: String = SimpleDateFormat(Constants.DATE_FORMAT, Locale.getDefault()).format(Date())
         val storageDir: File? = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        imageName = "JPEG_${timeStamp}_"
+        imageName = "${Constants.FILE_PREFIX_JPEG}${timeStamp}_"
         return File.createTempFile(
-            "JPEG_${timeStamp}_", /* prefix */
-            ".jpg", /* suffix */
+            imageName, /* prefix */
+            Constants.FILE_SUFFIX_JPG, /* suffix */
             storageDir /* directory */
         ).apply {
             // Save a file: path for use with ACTION_VIEW intents
@@ -220,14 +218,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 val photoFile: File? = try {
                     createImageFile()
                 } catch (e: IOException) {
-                    Log.e(TAG, e.message.toString())
+                    Log.e(Constants.TAG, e.message.toString())
                     null
                 }
                 // Continue only if the File was successfully created
                 photoFile?.also {
                     val photoURI: Uri = FileProvider.getUriForFile(
                         this,
-                        "com.google.mlkit.codelab.objectdetection.fileprovider",
+                        "${BuildConfig.APPLICATION_ID}.fileprovider",
                         it
                     )
                     takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
@@ -249,14 +247,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         // Register observers to listen for when the download is done or if it fails
         uploadTask.addOnFailureListener {
             // Handle unsuccessful uploads
-            Toast.makeText(getApplicationContext(), "保存失敗Q", Toast.LENGTH_LONG).show()
+            Toast.makeText(applicationContext, getString(R.string.upload_failed_tw), Toast.LENGTH_LONG).show()
         }.addOnSuccessListener { taskSnapshot ->
             // taskSnapshot.metadata contains file metadata such as size, content-type, etc.
-            Toast.makeText(getApplicationContext(), imageName + ".jpg上傳成功", Toast.LENGTH_LONG).show();
+            Toast.makeText(applicationContext, getString(R.string.upload_success_tw, imageName + Constants.FILE_SUFFIX_JPG), Toast.LENGTH_LONG).show();
             val intent = Intent(this, LabelActivity::class.java)
-            intent.putExtra("image", currentPhotoPath)
-            intent.putExtra("imageName", imageName )
-            intent.putExtra("ot", ot)
+            intent.putExtra(Constants.EXTRA_IMAGE_PATH, currentPhotoPath)
+            intent.putExtra(Constants.EXTRA_IMAGE_NAME, imageName )
+            intent.putExtra(Constants.EXTRA_ORIENTATION, ot)
             startActivity(intent)
             // ...
         }
