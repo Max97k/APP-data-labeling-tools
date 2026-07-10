@@ -54,10 +54,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var captureImageFab: Button
     private lateinit var toLabelFab: Button
 
-    private lateinit var currentPhotoPath: String
-    private lateinit var imageName: String
     private lateinit var storage: FirebaseStorage
-    private var ot: Int = 0
+    private lateinit var imageCaptureManager: ImageCaptureManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,11 +64,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         captureImageFab = findViewById(R.id.captureImageFab)
         toLabelFab = findViewById(R.id.toLabelFab)
         storage = Firebase.storage
+        imageCaptureManager = ImageCaptureManager(this, REQUEST_IMAGE_CAPTURE)
         captureImageFab.setOnClickListener(this)
         toLabelFab.setOnClickListener(this)
-
-
-
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -78,7 +74,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         if (requestCode == REQUEST_IMAGE_CAPTURE &&
             resultCode == RESULT_OK
         ) {
-            setViewAndDetect(getCapturedImage())
+            setViewAndDetect(imageCaptureManager.getCapturedImage())
         }
     }
 
@@ -86,7 +82,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         when (v?.id) {
             R.id.captureImageFab -> {
                 try {
-                    dispatchTakePictureIntent()
+                    imageCaptureManager.dispatchTakePictureIntent()
                 } catch (e: ActivityNotFoundException) {
                     Log.e(TAG, e.message.toString())
                 }
@@ -120,56 +116,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     /**
-     * getCapturedImage():
-     *     Decodes and crops the captured image from camera.
-     */
-    private fun getCapturedImage(): Bitmap {
-        // Get the dimensions of the View
-//        val targetW: Int = inputImageView.width
-//        val targetH: Int = inputImageView.height
-
-        val bmOptions = BitmapFactory.Options().apply {
-            // Get the dimensions of the bitmap
-            inJustDecodeBounds = true
-
-            BitmapFactory.decodeFile(currentPhotoPath, this)
-
-            val photoW: Int = outWidth
-            val photoH: Int = outHeight
-
-            // Determine how much to scale down the image
-//            val scaleFactor: Int = max(1, min(photoW / targetW, photoH / targetH))
-
-            // Decode the image file into a Bitmap sized to fill the View
-            inJustDecodeBounds = false
-//            inSampleSize = scaleFactor
-            inMutable = true
-        }
-        val exifInterface = ExifInterface(currentPhotoPath)
-        val orientation = exifInterface.getAttributeInt(
-            ExifInterface.TAG_ORIENTATION,
-            ExifInterface.ORIENTATION_UNDEFINED
-        )
-
-        val bitmap = BitmapFactory.decodeFile(currentPhotoPath, bmOptions)
-        ot = orientation
-        return when (orientation) {
-            ExifInterface.ORIENTATION_ROTATE_90 -> {
-                rotateImage(bitmap, 90f)
-            }
-            ExifInterface.ORIENTATION_ROTATE_180 -> {
-                rotateImage(bitmap, 180f)
-            }
-            ExifInterface.ORIENTATION_ROTATE_270 -> {
-                rotateImage(bitmap, 270f)
-            }
-            else -> {
-                bitmap
-            }
-        }
-    }
-
-    /**
      * Get image form drawable and convert to bitmap.
      */
     private fun getSampleImage(drawable: Int): Bitmap {
@@ -178,72 +124,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         })
     }
 
-    /**
-     * Rotate the given bitmap.
-     */
-    private fun rotateImage(source: Bitmap, angle: Float): Bitmap {
-        val matrix = Matrix()
-        matrix.postRotate(angle)
-        return Bitmap.createBitmap(
-            source, 0, 0, source.width, source.height,
-            matrix, true
-        )
-    }
-
-    /**
-     * Create a file to pass to a camera app for storing captured image.
-     */
-    @Throws(IOException::class)
-    private fun createImageFile(): File {
-        // Create an image file name
-        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
-        val storageDir: File? = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        imageName = "JPEG_${timeStamp}_"
-        return File.createTempFile(
-            "JPEG_${timeStamp}_", /* prefix */
-            ".jpg", /* suffix */
-            storageDir /* directory */
-        ).apply {
-            // Save a file: path for use with ACTION_VIEW intents
-            currentPhotoPath = absolutePath
-        }
-    }
-
-    /**
-     * Open a camera app to take photo.
-     */
-    private fun dispatchTakePictureIntent() {
-        Intent(MediaStore.ACTION_IMAGE_CAPTURE).also { takePictureIntent ->
-            // Ensure that there's a camera activity to handle the intent
-            takePictureIntent.resolveActivity(packageManager)?.also {
-                // Create the File where the photo should go
-                val photoFile: File? = try {
-                    createImageFile()
-                } catch (e: IOException) {
-                    Log.e(TAG, e.message.toString())
-                    null
-                }
-                // Continue only if the File was successfully created
-                photoFile?.also {
-                    val photoURI: Uri = FileProvider.getUriForFile(
-                        this,
-                        "com.google.mlkit.codelab.objectdetection.fileprovider",
-                        it
-                    )
-                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
-                    startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE)
-                }
-            }
-        }
-    }
-
     private fun imgUploadFiles(){
         val storage = Firebase.storage
         val storageRef = storage.reference
 //        val zipFile: File = File(currentPhotoPath)
-        var file = Uri.fromFile(File(currentPhotoPath))
+        var file = Uri.fromFile(File(imageCaptureManager.currentPhotoPath))
 //        val imagesRef = storageRef.child("images/${file.lastPathSegment}")
-        val imagesRef = storageRef.child(imageName+".jpg")
+        val imagesRef = storageRef.child(imageCaptureManager.imageName+".jpg")
 
         var uploadTask = imagesRef.putFile(file)
         // Register observers to listen for when the download is done or if it fails
@@ -252,11 +139,11 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             Toast.makeText(getApplicationContext(), "保存失敗Q", Toast.LENGTH_LONG).show()
         }.addOnSuccessListener { taskSnapshot ->
             // taskSnapshot.metadata contains file metadata such as size, content-type, etc.
-            Toast.makeText(getApplicationContext(), imageName + ".jpg上傳成功", Toast.LENGTH_LONG).show();
+            Toast.makeText(getApplicationContext(), imageCaptureManager.imageName + ".jpg上傳成功", Toast.LENGTH_LONG).show();
             val intent = Intent(this, LabelActivity::class.java)
-            intent.putExtra("image", currentPhotoPath)
-            intent.putExtra("imageName", imageName )
-            intent.putExtra("ot", ot)
+            intent.putExtra("image", imageCaptureManager.currentPhotoPath)
+            intent.putExtra("imageName", imageCaptureManager.imageName )
+            intent.putExtra("ot", imageCaptureManager.ot)
             startActivity(intent)
             // ...
         }
