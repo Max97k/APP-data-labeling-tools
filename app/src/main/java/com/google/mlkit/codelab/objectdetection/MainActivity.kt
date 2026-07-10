@@ -31,6 +31,7 @@ import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
@@ -47,7 +48,6 @@ import java.util.*
 class MainActivity : AppCompatActivity(), View.OnClickListener {
     companion object {
         const val TAG = "MLKit-ODT"
-        const val REQUEST_IMAGE_CAPTURE: Int = 1
         private const val MAX_FONT_SIZE = 96F
     }
 
@@ -58,6 +58,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var imageName: String
     private lateinit var storage: FirebaseStorage
     private var ot: Int = 0
+
+    private val takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { isSuccess ->
+        if (isSuccess) {
+            setViewAndDetect(getCapturedImage())
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,15 +77,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
 
 
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_IMAGE_CAPTURE &&
-            resultCode == RESULT_OK
-        ) {
-            setViewAndDetect(getCapturedImage())
-        }
     }
 
     override fun onClick(v: View?) {
@@ -230,8 +227,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                         "com.google.mlkit.codelab.objectdetection.fileprovider",
                         it
                     )
-                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
-                    startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE)
+                    takePictureLauncher.launch(photoURI)
                 }
             }
         }
