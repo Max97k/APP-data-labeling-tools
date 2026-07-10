@@ -38,6 +38,7 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.ktx.storage
+import com.google.mlkit.codelab.objectdetection.databinding.ActivityMainBinding
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -51,8 +52,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         private const val MAX_FONT_SIZE = 96F
     }
 
-    private lateinit var captureImageFab: Button
-    private lateinit var toLabelFab: Button
+    private lateinit var binding: ActivityMainBinding
 
     private lateinit var currentPhotoPath: String
     private lateinit var imageName: String
@@ -61,16 +61,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        captureImageFab = findViewById(R.id.captureImageFab)
-        toLabelFab = findViewById(R.id.toLabelFab)
         storage = Firebase.storage
-        captureImageFab.setOnClickListener(this)
-        toLabelFab.setOnClickListener(this)
-
-
-
+        binding.captureImageFab.setOnClickListener(this)
+        binding.toLabelFab.setOnClickListener(this)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
