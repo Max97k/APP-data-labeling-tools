@@ -46,7 +46,8 @@ class LabelActivity : AppCompatActivity() {
         binding.checkButton.setOnClickListener {
             binding.checkButton.hide()
             Log.e("finish", "finish")
-            saveDataToCSV()
+            val data = prepareCsvData()
+            CsvExporter.saveDataToCSV(this, imageName, data)
             up_load()
             Log.e("finish", "finish")
         }
@@ -212,7 +213,7 @@ class LabelActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveDataToCSV() {
+    private fun prepareCsvData(): List<Array<String>> {
         listDataArray = Array(3 * 3) { "" }
         listDataArray[0] = binding.label11.editableText.toString()
         listDataArray[1] = binding.label12.editableText.toString()
@@ -231,15 +232,7 @@ class LabelActivity : AppCompatActivity() {
                 listDataArray[i * 3 + 1],
                 listDataArray[i * 3 + 2]))
         }
-//
-//        val gson = Gson()
-//        gson.toJson(data, FileWriter(createCsvFile()))
-
-        FileWriter(createCsvFile()).use { writer ->
-            val gson = GsonBuilder().create()
-            gson.toJson(data, writer)
-        }
-
+        return data
     }
 
     private fun up_load() {
@@ -296,23 +289,6 @@ class LabelActivity : AppCompatActivity() {
 
                 // ...
             }
-    }
-
-
-    /**
-     * Create a file to pass to a camera app for storing captured image.
-     */
-    @Throws(IOException::class)
-    private fun createCsvFile(): File {
-        // Create an image file name
-        val storageDir: File? = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
-        return File.createTempFile(
-            imageName, /* prefix */
-            ".csv", /* suffix */
-            storageDir /* directory */
-        ).apply {
-            // Save a file: path for use with ACTION_VIEW intents
-        }
     }
 
 
