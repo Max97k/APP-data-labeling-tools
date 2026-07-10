@@ -7,4 +7,10 @@
     <string name="label_1">label 1</string>
     <string name="label_2">label 2</string>
     <string name="label_3">label 3</string>
+    <string name="upload_failed_tw">保存失敗Q</string>
+    <string name="upload_success_tw">%1$s上傳成功</string>
+    <string name="upload_successful">Upload successful!</string>
+    <string name="upload_failed">Upload failed</string>
+    <string name="unknown_object">Unknown</string>
+    <string name="label_confidence">%1$s, %2$d%%</string>
 </resources>
